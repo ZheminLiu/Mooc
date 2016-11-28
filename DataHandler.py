@@ -26,3 +26,23 @@ def readData(courseId, termId):
             label3.append([[week[2], 1 - week[2]] for week in weeks])
             label4.append([[week[3], 1 - week[3]] for week in weeks])
     return np.array(data), np.array(label1), np.array(label2), np.array(label3), np.array(label4)
+
+
+def dataConvert(modelNum, testData):
+    """
+    对于训练模型与测试数据长度不匹配的情况，进行数据转化
+    :param modelNum: 训练模型的长度
+    :param testData: 测试数据（ndarray)
+    :return: 转换后的测试数据
+    """
+    r = modelNum * 1.0 / testData.shape[1]  # 转换的比例因子
+    users, features = testData.shape[0], testData.shape[2]
+    result = np.zeros((users, modelNum, features))
+    for user in xrange(users):
+        # 此处倒序映射，如果是需要扩充，由于result默认全0,则未映射到的部分已经补0
+        # 如果是压缩，当有多个周映射到同一周时，倒序会自动取靠前的周的数据
+        for week in xrange(testData.shape[1] - 1, -1, -1):
+            newWeek = int(np.round((week + 1) * r)) - 1  # 化为以1开始，然后转换，四舍五入，再减1
+            if newWeek >= 0:
+                result[user][newWeek] = testData[user][week]  # 映射
+    return result

@@ -1,3 +1,3 @@
 # coding: utf8
-from FileHandler import *
+from DataHandler import *
 from SequenceLabeling import *
