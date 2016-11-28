@@ -61,7 +61,7 @@ class SequenceLabelling(object):
     def error(self):
         mistakes = tf.equal(
             tf.argmax(self.target, 2), tf.argmax(self.prediction, 2))
-        print(mistakes)
+        # print(mistakes)
         return tf.reduce_mean(tf.cast(mistakes, tf.float32))
 
     @staticmethod
