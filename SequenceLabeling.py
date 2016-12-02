@@ -18,12 +18,13 @@ def lazy_property(function):
 
 
 class SequenceLabelling(object):
-    def __init__(self, data, target, dropout, num_hidden=200, num_layers=1):
+    def __init__(self, data, target, dropout, session, num_hidden=200, num_layers=1):
         self.data = data
         self.target = target
         self.dropout = dropout
         self._num_hidden = num_hidden
         self._num_layers = num_layers
+        self.session = session
         self.prediction
         self.error
         self.optimize

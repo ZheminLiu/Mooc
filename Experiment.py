@@ -30,17 +30,26 @@ def exp1():
             numSteps, size = data.shape[1], data.shape[2]
             for i in xrange(1, 5):  # 四个定义四次训练
                 with tf.variable_scope("%s_%s_%s" % (courseId, termId, i)):
-                    print "  开始定义%s的训练" % i
+                    print "  预测定义%s中" % i,
                     data = tf.placeholder(tf.float32, [None, numSteps, size])
                     target = tf.placeholder(tf.float32, [None, numSteps, label1.shape[2]])
                     dropout = tf.placeholder(tf.float32)
-                    sl = SequenceLabelling(data, target, dropout)
                     session = tf.Session()
+                    sl = SequenceLabelling(data, target, dropout, session)
                     session.run(tf.initialize_all_variables())
                     for j in xrange(int(np.ceil(trainData.shape[0]/batchSize))):
                         batchData = trainData[j*batchSize:(j+1)*batchSize]
                         batchTarget = eval('trainLabel'+str(i))[j*batchSize:(j+1)*batchSize]
                         session.run(sl.optimize, {data: batchData, target: batchTarget, dropout: drop})
+
+                    # 看看是不是全0
+                    allNum = len(testData)*len(testData[0])  # 测试数据总数，用户数*周数
+                    zeros = 0
+                    for user in eval('testLabel'+str(i)):
+                        for week in user:
+                            if week[0] == 0:
+                                zeros += 1
+                    print "全都视为0的正确率:{:3.2f}%".format(100*zeros*1.0/allNum),
                     error = session.run(sl.error, {data: testData, target: eval('testLabel'+str(i)), dropout: drop})
-                    print "  Accuracy: {:3.2f}%".format(100*error)
+                    print "预测的正确率: {:3.2f}%".format(100*error)
 exp1()
