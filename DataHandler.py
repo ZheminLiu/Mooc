@@ -1,5 +1,7 @@
 # coding: utf8
 import numpy as np
+
+
 def readData(courseId, termId):
     """
     根据课程号与学期号，读取文件
@@ -45,6 +47,7 @@ def dataConvert(modelNum, testData):
                 result[user][newWeek] = testData[user][week]  # 映射
     return result
 
+
 def dataClean(trainData, testData, *trainAndTestLabels):
     """
     对全0数据进行清除，trainAndTestLabels为(trainLabel, testLabel)数组
@@ -61,12 +64,12 @@ def dataClean(trainData, testData, *trainAndTestLabels):
         if sum(sum(np.array(testData[i]))) == 0:
             testZeros.append(i)
     for i in xrange(len(trainZeros)):
-        trainNum = trainZeros[i]-i
+        trainNum = trainZeros[i] - i
         trainData.pop(trainNum)
         for trainLabel, testLabel in trainAndTestLabels:
             trainLabel.pop(trainNum)
     for i in xrange(len(testZeros)):
-        testNum = testZeros[i]-i
+        testNum = testZeros[i] - i
         testData.pop(testNum)
         for trainLabel, testLabel in trainAndTestLabels:
             testLabel.pop(testNum)
