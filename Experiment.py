@@ -20,20 +20,30 @@ def exp1():
         for termId in courseDict[courseId]:
             # 读取数据
             print "课程号:%s, 学期号:%s:" % (courseId, termId)
-            data, label1, label2, label3, label4, allZeros = readData(courseId, termId)
+            data, label1, label2, label3, label4 = readData(courseId, termId)
             trainNums = int(len(data)*trainRadio)  # 训练数量
-            testNums = len(data)-trainNums
             trainData, testData = data[:trainNums], data[trainNums:]
             trainLabel1, testLabel1 = label1[:trainNums], label1[trainNums:]
             trainLabel2, testLabel2 = label2[:trainNums], label2[trainNums:]
             trainLabel3, testLabel3 = label3[:trainNums], label3[trainNums:]
             trainLabel4, testLabel4 = label4[:trainNums], label4[trainNums:]
-            numSteps, size = data.shape[1], data.shape[2]
+            zeros = dataClean(trainData, testData, (trainLabel1, testLabel1),
+                              (trainLabel2, testLabel2),
+                              (trainLabel3, testLabel3),
+                              (trainLabel4, testLabel4))  # 被排除的数量
+
+            trainData, testData = np.array(trainData), np.array(testData)
+            trainLabel1, testLabel1 = np.array(trainLabel1), np.array(testLabel1)
+            trainLabel2, testLabel2 = np.array(trainLabel2), np.array(testLabel2)
+            trainLabel3, testLabel3 = np.array(trainLabel3), np.array(testLabel3)
+            trainLabel4, testLabel4 = np.array(trainLabel4), np.array(testLabel4)
+
+            numSteps, size = trainData.shape[1], trainData.shape[2]
             for i in xrange(1, 5):  # 四个定义四次训练
                 with tf.variable_scope("%s_%s_%s" % (courseId, termId, i)):
                     print "  预测定义%s," % i,
                     data = tf.placeholder(tf.float32, [None, numSteps, size])
-                    target = tf.placeholder(tf.float32, [None, numSteps, label1.shape[2]])
+                    target = tf.placeholder(tf.float32, [None, numSteps, trainLabel1.shape[2]])
                     dropout = tf.placeholder(tf.float32)
                     session = tf.Session()
                     sl = SequenceLabelling(data, target, dropout, session)
@@ -52,6 +62,6 @@ def exp1():
                     #             zeros += 1
                     # print "全都视为0的正确率:{:3.2f}%".format(100*zeros*1.0/allNum),
                     error = session.run(sl.error, {data: testData, target: eval('testLabel'+str(i)), dropout: drop})
-                    accuracy = (allZeros+testNums*error)*1.0/(testNums+allZeros)
-                    print "预测的正确率: {:3.2f}%".format(100*accuracy)
+                    accuracy = (zeros+len(testData)*error)*1.0/(len(testData)+zeros)
+                    print "预测的正确率:{:3.2f}%".format(100*accuracy)
 exp1()

@@ -11,31 +11,19 @@ def readData(courseId, termId):
     labelFileName = "dataFiles/label_%s_%s" % (courseId, termId)
     data = []  # 数据
     label1, label2, label3, label4 = [], [], [], []  # 四个定义
-    flags = [True for i in xrange(50000)]
-    allZeros = 0
     with open(dataFileName, 'r') as dataFile:
-        index = 0
         for line in dataFile:
             lineArray = line.strip().split("\t")[1:]  # 每一项为一个周的数据
-            #print [map(int, week.split()) for week in lineArray]
-            if sum(sum(np.array([map(int, week.split()) for week in lineArray]))) == 0:
-                flags[index] = False
-                allZeros += 1
-            else:
-                data.append([map(int, week.split()) for week in lineArray])
-            index += 1
+            data.append([map(int, week.split()) for week in lineArray])
     with open(labelFileName, 'r') as labelFile:
-        index = 0
         for line in labelFile:
             lineArray = line.strip().split("\t")[1:]  # 每一项为一个周的四个定义
-            if flags[index]:
-                weeks = [map(int, week.split()) for week in lineArray]
-                label1.append([[week[0], 1 - week[0]] for week in weeks])
-                label2.append([[week[1], 1 - week[1]] for week in weeks])
-                label3.append([[week[2], 1 - week[2]] for week in weeks])
-                label4.append([[week[3], 1 - week[3]] for week in weeks])
-            index += 1
-    return np.array(data), np.array(label1), np.array(label2), np.array(label3), np.array(label4), allZeros
+            weeks = [map(int, week.split()) for week in lineArray]
+            label1.append([[week[0], 1 - week[0]] for week in weeks])
+            label2.append([[week[1], 1 - week[1]] for week in weeks])
+            label3.append([[week[2], 1 - week[2]] for week in weeks])
+            label4.append([[week[3], 1 - week[3]] for week in weeks])
+    return data, label1, label2, label3, label4
 
 
 def dataConvert(modelNum, testData):
@@ -56,3 +44,30 @@ def dataConvert(modelNum, testData):
             if newWeek >= 0:
                 result[user][newWeek] = testData[user][week]  # 映射
     return result
+
+def dataClean(trainData, testData, *trainAndTestLabels):
+    """
+    对全0数据进行清除，trainAndTestLabels为(trainLabel, testLabel)数组
+    :param trainData:
+    :param testData:
+    :param trainAndTestLabels:
+    :return:
+    """
+    trainZeros, testZeros = [], []  # 被排除索引
+    for i in xrange(len(trainData)):
+        if sum(sum(np.array(trainData[i]))) == 0:
+            trainZeros.append(i)
+    for i in xrange(len(testData)):
+        if sum(sum(np.array(testData[i]))) == 0:
+            testZeros.append(i)
+    for i in xrange(len(trainZeros)):
+        trainNum = trainZeros[i]-i
+        trainData.pop(trainNum)
+        for trainLabel, testLabel in trainAndTestLabels:
+            trainLabel.pop(trainNum)
+    for i in xrange(len(testZeros)):
+        testNum = testZeros[i]-i
+        testData.pop(testNum)
+        for trainLabel, testLabel in trainAndTestLabels:
+            testLabel.pop(testNum)
+    return len(testZeros)
