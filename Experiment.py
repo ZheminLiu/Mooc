@@ -3,6 +3,7 @@ from DataHandler import *
 from SequenceLabeling import *
 trainRadio = 0.8  # 取80%的数据训练
 batchSize = 100  # 每次读取的数据量
+epoch = 10
 drop = 0.5
 courseDict = {
     85001: [253007, 357003, 485002, 1001584004],
@@ -41,17 +42,22 @@ def exp1():
             numSteps, size = trainData.shape[1], trainData.shape[2]
             for i in xrange(1, 5):  # 四个定义四次训练
                 with tf.variable_scope("%s_%s_%s" % (courseId, termId, i)):
-                    print "  预测定义%s," % i,
+                    print "  预测定义%s:" % i
                     data = tf.placeholder(tf.float32, [None, numSteps, size])
                     target = tf.placeholder(tf.float32, [None, numSteps, trainLabel1.shape[2]])
                     dropout = tf.placeholder(tf.float32)
                     session = tf.Session()
                     sl = SequenceLabelling(data, target, dropout, session)
                     session.run(tf.initialize_all_variables())
-                    for j in xrange(int(np.ceil(trainData.shape[0]/batchSize))):
-                        batchData = trainData[j*batchSize:(j+1)*batchSize]
-                        batchTarget = eval('trainLabel'+str(i))[j*batchSize:(j+1)*batchSize]
-                        session.run(sl.optimize, {data: batchData, target: batchTarget, dropout: drop})
+                    for e in xrange(epoch):
+                        for j in xrange(int(np.ceil(trainData.shape[0]/batchSize))):
+                            batchData = trainData[j*batchSize:(j+1)*batchSize]
+                            batchTarget = eval('trainLabel'+str(i))[j*batchSize:(j+1)*batchSize]
+                            session.run(sl.optimize, {data: batchData, target: batchTarget, dropout: drop})
+                        error = session.run(sl.error,
+                                            {data: testData, target: eval('testLabel' + str(i)), dropout: drop})
+                        accuracy = (zeros + len(testData) * error) * 1.0 / (len(testData) + zeros)
+                        print "    Epoch{:d}, 预测的正确率:{:3.2f}%".format(e+1, 100 * accuracy)
 
                     # 看看是不是全0
                     # allNum = len(testData)*len(testData[0])  # 测试数据总数，用户数*周数
@@ -61,7 +67,7 @@ def exp1():
                     #         if week[0] == 0:
                     #             zeros += 1
                     # print "全都视为0的正确率:{:3.2f}%".format(100*zeros*1.0/allNum),
-                    error = session.run(sl.error, {data: testData, target: eval('testLabel'+str(i)), dropout: drop})
-                    accuracy = (zeros+len(testData)*error)*1.0/(len(testData)+zeros)
-                    print "预测的正确率:{:3.2f}%".format(100*accuracy)
+                    # error = session.run(sl.error, {data: testData, target: eval('testLabel'+str(i)), dropout: drop})
+                    # accuracy = (zeros+len(testData)*error)*1.0/(len(testData)+zeros)
+                    # print "预测的正确率:{:3.2f}%".format(100*accuracy)
 exp1()
