@@ -3,7 +3,7 @@ from DataHandler import *
 from SequenceLabeling import *
 trainRadio = 0.8  # 取80%的数据训练
 batchSize = 100  # 每次读取的数据量
-epoch = 10
+epoch = 10  # 迭代次数
 drop = 0.5
 courseDict = {
     85001: [253007, 357003, 485002, 1001584004],
@@ -58,16 +58,4 @@ def exp1():
                                             {data: testData, target: eval('testLabel' + str(i)), dropout: drop})
                         accuracy = (zeros + len(testData) * error) * 1.0 / (len(testData) + zeros)
                         print "    Epoch{:d}, 预测的正确率:{:3.2f}%".format(e+1, 100 * accuracy)
-
-                    # 看看是不是全0
-                    # allNum = len(testData)*len(testData[0])  # 测试数据总数，用户数*周数
-                    # zeros = 0
-                    # for user in eval('testLabel'+str(i)):
-                    #     for week in user:
-                    #         if week[0] == 0:
-                    #             zeros += 1
-                    # print "全都视为0的正确率:{:3.2f}%".format(100*zeros*1.0/allNum),
-                    # error = session.run(sl.error, {data: testData, target: eval('testLabel'+str(i)), dropout: drop})
-                    # accuracy = (zeros+len(testData)*error)*1.0/(len(testData)+zeros)
-                    # print "预测的正确率:{:3.2f}%".format(100*accuracy)
 exp1()

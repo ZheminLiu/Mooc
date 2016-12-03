@@ -54,7 +54,7 @@ class SequenceLabelling(object):
 
     @lazy_property
     def optimize(self):
-        learning_rate = 0.003
+        learning_rate = 0.01
         optimizer = tf.train.AdamOptimizer(learning_rate)
         return optimizer.minimize(self.cost)
 
