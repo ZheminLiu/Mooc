@@ -1,7 +1,5 @@
 # coding: utf8
 import numpy as np
-
-
 def readData(courseId, termId):
     """
     根据课程号与学期号，读取文件
@@ -13,19 +11,31 @@ def readData(courseId, termId):
     labelFileName = "dataFiles/label_%s_%s" % (courseId, termId)
     data = []  # 数据
     label1, label2, label3, label4 = [], [], [], []  # 四个定义
+    flags = [True for i in xrange(50000)]
+    allZeros = 0
     with open(dataFileName, 'r') as dataFile:
+        index = 0
         for line in dataFile:
             lineArray = line.strip().split("\t")[1:]  # 每一项为一个周的数据
-            data.append([map(int, week.split()) for week in lineArray])
+            #print [map(int, week.split()) for week in lineArray]
+            if sum(sum(np.array([map(int, week.split()) for week in lineArray]))) == 0:
+                flags[index] = False
+                allZeros += 1
+            else:
+                data.append([map(int, week.split()) for week in lineArray])
+            index += 1
     with open(labelFileName, 'r') as labelFile:
+        index = 0
         for line in labelFile:
             lineArray = line.strip().split("\t")[1:]  # 每一项为一个周的四个定义
-            weeks = [map(int, week.split()) for week in lineArray]
-            label1.append([[week[0], 1 - week[0]] for week in weeks])
-            label2.append([[week[1], 1 - week[1]] for week in weeks])
-            label3.append([[week[2], 1 - week[2]] for week in weeks])
-            label4.append([[week[3], 1 - week[3]] for week in weeks])
-    return np.array(data), np.array(label1), np.array(label2), np.array(label3), np.array(label4)
+            if flags[index]:
+                weeks = [map(int, week.split()) for week in lineArray]
+                label1.append([[week[0], 1 - week[0]] for week in weeks])
+                label2.append([[week[1], 1 - week[1]] for week in weeks])
+                label3.append([[week[2], 1 - week[2]] for week in weeks])
+                label4.append([[week[3], 1 - week[3]] for week in weeks])
+            index += 1
+    return np.array(data), np.array(label1), np.array(label2), np.array(label3), np.array(label4), allZeros
 
 
 def dataConvert(modelNum, testData):
