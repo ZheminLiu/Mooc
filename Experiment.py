@@ -50,6 +50,7 @@ def exp1():
                     target = tf.placeholder(tf.float32, [None, numSteps, trainLabel1.shape[2]])
                     dropout = tf.placeholder(tf.float32)
                     session = tf.Session()
+                    targetLabel = session.run(tf.argmax(eval('testLabel' + str(i)), 2)).T  # 期望的结果
                     sl = SequenceLabelling(data, target, dropout, session)
                     session.run(tf.initialize_all_variables())
                     for e in xrange(epoch):
@@ -57,10 +58,20 @@ def exp1():
                             batchData = trainData[j * batchSize:(j + 1) * batchSize]
                             batchTarget = eval('trainLabel' + str(i))[j * batchSize:(j + 1) * batchSize]
                             session.run(sl.optimize, {data: batchData, target: batchTarget, dropout: drop})
+                        predict = session.run(sl.prediction, {data: testData, target: eval('testLabel' + str(i)),
+                                                              dropout: drop})
+                        predict = session.run(tf.argmax(predict, 2)).T  # 预测的结果
                         error = session.run(sl.error,
                                             {data: testData, target: eval('testLabel' + str(i)), dropout: drop})
                         accuracy = (zeros + len(testData) * error) * 1.0 / (len(testData) + zeros)
-                        print "    Epoch{:d}, 预测的正确率:{:3.2f}%".format(e + 1, 100 * accuracy)
+                        print "    Epoch{:d}, 预测的正确率:{:3.2f}%,".format(e + 1, 100 * accuracy),
+                        for j in xrange(len(predict)):  # 输出各周的准确率
+                            weekAccuracy = session.run(tf.reduce_mean(
+                                tf.cast(tf.equal(predict[j], targetLabel[j]), tf.float32)))
+                            weekAccuracy = (zeros + len(testData) * weekAccuracy) * 1.0 / \
+                                           (len(testData) + zeros)
+                            print "第%s周的准确率:%3.2f%%," % (j + 1, weekAccuracy * 100),
+                        print
 
 
 def exp2():
@@ -104,13 +115,24 @@ def exp2():
                     dropout = tf.placeholder(tf.float32)
                     session = tf.Session()
                     sl = SequenceLabelling(data, target, dropout, session)
+                    targetLabel = session.run(tf.argmax(eval('testLabel' + str(i)), 2)).T  # 期望的结果
                     session.run(tf.initialize_all_variables())
                     for e in xrange(epoch):
                         for j in xrange(int(np.ceil(trainData.shape[0] / batchSize))):
                             batchData = trainData[j * batchSize:(j + 1) * batchSize]
                             batchTarget = eval('trainLabel' + str(i))[j * batchSize:(j + 1) * batchSize]
                             session.run(sl.optimize, {data: batchData, target: batchTarget, dropout: drop})
+                        predict = session.run(sl.prediction, {data: testData, target: eval('testLabel' + str(i)),
+                                                              dropout: drop})
+                        predict = session.run(tf.argmax(predict, 2)).T  # 预测的结果
                         error = session.run(sl.error,
                                             {data: testData, target: eval('testLabel' + str(i)), dropout: drop})
                         accuracy = (zeros + len(testData) * error) * 1.0 / (len(testData) + zeros)
-                        print "    Epoch{:d}, 预测的正确率:{:3.2f}%".format(e + 1, 100 * accuracy)
+                        print "    Epoch{:d}, 预测的总正确率:{:3.2f}%,".format(e + 1, 100 * accuracy),
+                        for j in xrange(len(predict)):  # 输出各周的准确率
+                            weekAccuracy = session.run(tf.reduce_mean(
+                                tf.cast(tf.equal(predict[j], targetLabel[j]), tf.float32)))
+                            weekAccuracy = (zeros + len(testData) * weekAccuracy) * 1.0 / \
+                                           (len(testData) + zeros)
+                            print "第%s周的准确率:%3.2f%%," % (j + 1, weekAccuracy * 100),
+                        print
