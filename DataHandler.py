@@ -48,29 +48,35 @@ def dataConvert(modelNum, testData):
     return result
 
 
-def dataClean(trainData, testData, *trainAndTestLabels):
+def dataClean(trainData, *trainLabels):
     """
-    对全0数据进行清除，trainAndTestLabels为(trainLabel, testLabel)数组
+    对全0的训练数据进行清除
     :param trainData:
     :param testData:
     :param trainAndTestLabels:
     :return:
     """
-    trainZeros, testZeros = [], []  # 被排除索引
+    trainZeros = []  # 被排除索引
     for i in xrange(len(trainData)):
         if sum(sum(np.array(trainData[i]))) == 0:
             trainZeros.append(i)
-    for i in xrange(len(testData)):
-        if sum(sum(np.array(testData[i]))) == 0:
-            testZeros.append(i)
     for i in xrange(len(trainZeros)):
         trainNum = trainZeros[i] - i
         trainData.pop(trainNum)
-        for trainLabel, testLabel in trainAndTestLabels:
+        for trainLabel in trainLabels:
             trainLabel.pop(trainNum)
-    for i in xrange(len(testZeros)):
-        testNum = testZeros[i] - i
-        testData.pop(testNum)
-        for trainLabel, testLabel in trainAndTestLabels:
-            testLabel.pop(testNum)
-    return len(testZeros)
+
+def getZeroMatrix(testData):
+    """
+    根据测试数据，获得一个shape = (用户数,周数)的矩阵，对于(i,j)，如果i,0-j均为全0,则(i,j)=1
+    :param testData:
+    :return:
+    """
+    matrix = np.zeros((testData.shape[0], testData.shape[1]))
+    for i in xrange(testData.shape[0]):
+        for j in xrange(testData.shape[1]):
+            if sum(testData[i][j]) == 0:
+                matrix[i][j] = 1
+            else:  # 说明出现了不全0的周,break
+                break
+    return matrix
