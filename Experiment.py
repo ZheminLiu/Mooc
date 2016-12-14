@@ -22,7 +22,7 @@ def exp(courseId, termId, trainData, testData,
     实验1与实验2的模板
     :return:
     """
-    dataClean(trainData, trainLabel1, trainLabel2, trainLabel3, trainLabel4)  # 被排除的数量
+    #dataClean(trainData, trainLabel1, trainLabel2, trainLabel3, trainLabel4)  # 被排除的数量
     # 数据转换
     trainData, testData = np.array(trainData), np.array(testData)
     trainLabel1, testLabel1 = np.array(trainLabel1), np.array(testLabel1)
@@ -52,17 +52,17 @@ def exp(courseId, termId, trainData, testData,
                                                       dropout: drop})
                 # 预测的结果，shape = (用户数量，周数），值为0/1
                 predict = session.run(tf.argmax(predict, 2))
-                zeroMatrix = getZeroMatrix(testData)  # 判断各个周是否要排除
+                #zeroMatrix = getZeroMatrix(testData)  # 判断各个周是否要排除
                 print "    Epoch:%d," % (e + 1),
                 for j in xrange(predict.shape[1]):  # 按周计算正确率
-                    exclude = 0  # 排除的用户数
+                    #exclude = 0  # 排除的用户数
                     correct = 0  # 预测正确的数量
                     for k in xrange(predict.shape[0]):  # 计算每个用户
-                        if zeroMatrix[k][j] == 1:
-                            exclude += 1  # 全0,应当排除
-                        elif predict[k][j] == targetLabel[k][j]:
+                        # if zeroMatrix[k][j] == 1:
+                        #     exclude += 1  # 全0,应当排除
+                        if predict[k][j] == targetLabel[k][j]:
                             correct += 1
-                    accuracy = (correct + exclude) * 1.0 / predict.shape[0]
+                    accuracy = (correct) * 1.0 / predict.shape[0]
                     print "第%s周的准确率:%3.2f%%" % (j + 1, accuracy * 100),
                 print
 

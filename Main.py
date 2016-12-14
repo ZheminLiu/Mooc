@@ -4,5 +4,5 @@ from Experiment import *
 if __name__ == "__main__":
     print "进行实验1"
     exp1()
-    print "进行实验2"
-    exp2()
+    #print "进行实验2"
+    #exp2()

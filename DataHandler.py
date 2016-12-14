@@ -1,6 +1,17 @@
 # coding: utf8
 import numpy as np
 
+def deal(n):
+    """
+    先int，若n大于0则为1,否则为0
+    :param n:
+    :return:
+    """
+    n = int(n)
+    if n > 0:
+        return 1
+    else:
+        return 0
 
 def readData(courseId, termId):
     """
@@ -16,7 +27,7 @@ def readData(courseId, termId):
     with open(dataFileName, 'r') as dataFile:
         for line in dataFile:
             lineArray = line.strip().split("\t")[1:]  # 每一项为一个周的数据
-            data.append([map(int, week.split()) for week in lineArray])
+            data.append([map(deal, week.split()) for week in lineArray])
     with open(labelFileName, 'r') as labelFile:
         for line in labelFile:
             lineArray = line.strip().split("\t")[1:]  # 每一项为一个周的四个定义
