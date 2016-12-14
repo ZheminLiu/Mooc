@@ -5,7 +5,7 @@ from SequenceLabeling import *
 trainRadio = 0.8  # 取80%的数据训练
 batchSize = 100  # 每次读取的数据量
 epoch = 1  # 迭代次数
-drop = 0.5
+drop = 0.6
 courseDict = {
     85001: [253007, 357003, 485002, 1001584004],
     20001: [407001, 1001620007],
