@@ -2,7 +2,7 @@
 from DataHandler import *
 from BiRNNSeqLabel import *
 
-trainRadio = 0.8  # 取80%的数据训练
+trainRadio = 0.7  # 取80%的数据训练
 batchSize = 100  # 每次读取的数据量
 epoch = 1  # 迭代次数
 drop = 0.6
@@ -48,13 +48,22 @@ def exp(courseId, termId, trainData, testData,
                     batchData = trainData[j * batchSize:(j + 1) * batchSize]
                     batchTarget = eval('trainLabel' + str(i))[j * batchSize:(j + 1) * batchSize]
                     session.run(sl.optimize, {data: batchData, target: batchTarget, dropout: drop})
-                # 预测模型的评估
-                correct = session.run(sl.dynamic_correct, {data: testData, target: eval('testLabel' + str(i)), dropout: 1.0})
-                accuracy = session.run(sl.correct, {data: testData, target: eval('testLabel' + str(i)), dropout: 1.0})
-                print "Epoch:%d," % (e + 1),
-                print "平均:{:3.2f}%".format(accuracy * 100),
-                for k in xrange(len(correct)):
-                    print "第%s周:%3.2f%%" % (k + 1, correct[k] * 100),
+                predict = session.run(sl.prediction, {data: testData, target: eval('testLabel' + str(i)),
+                                                      dropout: drop})
+                # 预测的结果，shape = (用户数量，周数），值为0/1
+                predict = session.run(tf.argmax(predict, 2))
+                #zeroMatrix = getZeroMatrix(testData)  # 判断各个周是否要排除
+                print "    Epoch:%d," % (e + 1),
+                for j in xrange(predict.shape[1]):  # 按周计算正确率
+                    #exclude = 0  # 排除的用户数
+                    correct = 0  # 预测正确的数量
+                    for k in xrange(predict.shape[0]):  # 计算每个用户
+                        # if zeroMatrix[k][j] == 1:
+                        #     exclude += 1  # 全0,应当排除
+                        if predict[k][j] == targetLabel[k][j]:
+                            correct += 1
+                    accuracy = (correct) * 1.0 / predict.shape[0]
+                    print "第%s周的准确率:%3.6f%%" % (j + 1, accuracy * 100),
                 print
 
 

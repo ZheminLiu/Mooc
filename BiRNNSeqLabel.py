@@ -43,9 +43,9 @@ class BiRNN(object):
 
         # Define lstm cells with tensorflow
         # Forward direction cell
-        lstm_fw_cell = tf.nn.rnn_cell.BasicLSTMCell(self._num_hidden, forget_bias=1.0, state_is_tuple=True)
+        lstm_fw_cell = tf.nn.rnn_cell.BasicLSTMCell(self._num_hidden, forget_bias=1.0)
         # Backward direction cell
-        lstm_bw_cell = tf.nn.rnn_cell.BasicLSTMCell(self._num_hidden, forget_bias=1.0, state_is_tuple=True)
+        lstm_bw_cell = tf.nn.rnn_cell.BasicLSTMCell(self._num_hidden, forget_bias=1.0)
 
         outputs, output_state_fw, output_state_bw = tf.nn.bidirectional_rnn(lstm_fw_cell, lstm_bw_cell, x, dtype=tf.float32)
 
@@ -93,6 +93,7 @@ class BiRNN(object):
         max_len = self.target.get_shape()[1]
         predicts = tf.split(1, max_len, self.prediction)
         targets = tf.split(1, max_len, self.target)
+        print targets
         results = []
         for i in xrange(max_len):
             correct = tf.equal(tf.argmax(targets[i], 2), tf.argmax(predicts[i], 2))
