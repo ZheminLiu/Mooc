@@ -1,5 +1,5 @@
 # coding: utf8
-from Experiment import *
+from Experiment02 import *
 
 if __name__ == "__main__":
     print "进行实验1"
