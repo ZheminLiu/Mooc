@@ -18,7 +18,7 @@ def lazy_property(function):
 
 
 class BiRNN(object):
-    def __init__(self, data, target, dropout, session, num_hidden=200, num_layers=1):
+    def __init__(self, data, target, dropout, session, num_hidden, num_layers):
         self.data = data
         self.target = target
         self.dropout = dropout
@@ -31,34 +31,40 @@ class BiRNN(object):
 
     @lazy_property
     def prediction(self):
-        max_length = int(self.target.get_shape()[1])
-        num_classes = int(self.target.get_shape()[2])
+        max_length = int(self.target.get_shape()[1])  # max_length = week_num
+        num_classes = int(self.target.get_shape()[2])  # num_classes = label_class_num
 
-        # Permuting batch_size and n_steps
+        # Permuting batch_size and week_num
         x = tf.transpose(self.data, [1, 0, 2])
-        # Reshape to (n_steps*batch_size, n_input)
-        x = tf.reshape(x, [-1, 15])
-        # Split to get a list of 'n_steps' tensors of shape (batch_size, n_input)
+        # Reshape to (week_num*batch_size, feature_num)
+        x = tf.reshape(x, [-1, int(self.data.get_shape()[2])])
+        # Split to get a list of 'week_num' tensors of
+        # Partition by Weeks
         x = tf.split(0, max_length, x)
 
-        # Define lstm cells with tensorflow
         # Forward direction cell
-        lstm_fw_cell = tf.nn.rnn_cell.BasicLSTMCell(self._num_hidden, forget_bias=1.0)
+        fw_cell = tf.nn.rnn_cell.BasicLSTMCell(self._num_hidden, forget_bias=1.0, state_is_tuple=True)
         # Backward direction cell
-        lstm_bw_cell = tf.nn.rnn_cell.BasicLSTMCell(self._num_hidden, forget_bias=1.0)
+        bw_cell = tf.nn.rnn_cell.BasicLSTMCell(self._num_hidden, forget_bias=1.0, state_is_tuple=True)
 
-        outputs, output_state_fw, output_state_bw = tf.nn.bidirectional_rnn(lstm_fw_cell, lstm_bw_cell, x, dtype=tf.float32)
+        fw_cell = tf.nn.rnn_cell.DropoutWrapper(fw_cell, output_keep_prob=self.dropout)
+        bw_cell = tf.nn.rnn_cell.DropoutWrapper(bw_cell, output_keep_prob=self.dropout)
 
-        # 'outputs' is a list of output at every timestep, we pack them in a Tensor
-        # and change back dimension to [batch_size, n_step, n_input]
+        fw_cell = tf.nn.rnn_cell.MultiRNNCell([fw_cell] * self._num_layers, state_is_tuple=True)
+        bw_cell = tf.nn.rnn_cell.MultiRNNCell([bw_cell] * self._num_layers, state_is_tuple=True)
+
+        # outputs = [week_num * stu_num * 2Hidden_num] is list of tensor
+        outputs, output_state_fw, output_state_bw = tf.nn.bidirectional_rnn(fw_cell, bw_cell, x,
+                                                                            dtype=tf.float32)
+        # transfer list of 2D tensor into a 3D tensor
         outputs = tf.pack(outputs)
+        # [week_num, stu_num, 2*hidden_num] => [stu_num, week_num, 2*hidden_num]
         outputs = tf.transpose(outputs, [1, 0, 2])
-
-        # Softmax layer.
+        # weight==[2*hidden_num, num_classes], bias==[num_classes]
         weight, bias = self._weight_and_bias(self._num_hidden, num_classes)
-        # Flatten to apply same weights to all time steps.
-        output = tf.reshape(outputs, [-1, 2*self._num_hidden])
-
+        # [stu_num, week_num, 2*hidden_num] => [stu_num * week_num, 2*hidden_num]
+        output = tf.reshape(outputs, [-1, 2 * self._num_hidden])
+        # 然后计算每个分类的softmax概率值
         prediction = tf.nn.softmax(tf.matmul(output, weight) + bias)
         prediction = tf.reshape(prediction, [-1, max_length, num_classes])
 
@@ -66,7 +72,8 @@ class BiRNN(object):
 
     @lazy_property
     def cost(self):
-        cross_entropy = -tf.reduce_sum(self.target * tf.log(self.prediction), reduction_indices=1)
+        # Compute cross entropy for each week.
+        cross_entropy = -tf.reduce_sum(self.target * tf.log(self.prediction), [1, 2])
         cross_entropy = tf.reduce_mean(cross_entropy)
         return cross_entropy
 
@@ -93,15 +100,14 @@ class BiRNN(object):
         max_len = self.target.get_shape()[1]
         predicts = tf.split(1, max_len, self.prediction)
         targets = tf.split(1, max_len, self.target)
-        print targets
         results = []
         for i in xrange(max_len):
             correct = tf.equal(tf.argmax(targets[i], 2), tf.argmax(predicts[i], 2))
             results.append(tf.reduce_mean(tf.cast(correct, tf.float32)))
-        return results
+        return results, targets
 
     @staticmethod
     def _weight_and_bias(in_size, out_size):
-        weight = tf.truncated_normal([2*in_size, out_size], stddev=0.01)
+        weight = tf.truncated_normal([2 * in_size, out_size], mean=0.0, stddev=0.01)
         bias = tf.constant(0.1, shape=[out_size])
         return tf.Variable(weight), tf.Variable(bias)

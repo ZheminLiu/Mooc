@@ -32,9 +32,9 @@ class SequenceLabelling(object):
     @lazy_property
     def prediction(self):
         # Recurrent network.
-        network = tf.nn.rnn_cell.LSTMCell(self._num_hidden)
+        network = tf.nn.rnn_cell.LSTMCell(self._num_hidden, state_is_tuple=True)
         network = tf.nn.rnn_cell.DropoutWrapper(network, output_keep_prob=self.dropout)
-        network = tf.nn.rnn_cell.MultiRNNCell([network] * self._num_layers)
+        network = tf.nn.rnn_cell.MultiRNNCell([network] * self._num_layers, state_is_tuple=True)
         output, _ = tf.nn.dynamic_rnn(network, self.data, dtype=tf.float32)
         # Softmax layer.
         max_length = int(self.target.get_shape()[1])
@@ -48,7 +48,7 @@ class SequenceLabelling(object):
 
     @lazy_property
     def cost(self):
-        cross_entropy = -tf.reduce_sum(self.target * tf.log(self.prediction), reduction_indices=1)
+        cross_entropy = -tf.reduce_sum(self.target * tf.log(self.prediction), [1, 2])
         cross_entropy = tf.reduce_mean(cross_entropy)
         return cross_entropy
 

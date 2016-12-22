@@ -20,8 +20,8 @@ def readData(courseId, termId):
     :param termId: 学期号
     :return: (数据，定义1的oneHot，定义2的，定义3的，定义4的）,shape = (用户数，周数，特征数）
     """
-    dataFileName = "dataFiles/data_%s_%s" % (courseId, termId)
-    labelFileName = "dataFiles/label_%s_%s" % (courseId, termId)
+    dataFileName = "oldDataFiles/data_%s_%s" % (courseId, termId)
+    labelFileName = "oldDataFiles/label_%s_%s" % (courseId, termId)
     data = []  # 数据
     label1, label2, label3, label4 = [], [], [], []  # 四个定义
     with open(dataFileName, 'r') as dataFile:

@@ -41,6 +41,7 @@ def exp(courseId, termId, trainData, testData,
             session = tf.Session()
             targetLabel = session.run(tf.argmax(eval('testLabel' + str(i)), 2))  # 期望的结果
             sl = SequenceLabelling(data, target, dropout, session)
+            # session.run(tf.global_variables_initializer())
             session.run(tf.initialize_all_variables())
             for e in xrange(epoch):
                 # 迭代训练
