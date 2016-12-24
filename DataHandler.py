@@ -1,6 +1,7 @@
 # coding: utf8
 import numpy as np
 
+
 def deal(n):
     """
     先int，若n大于0则为1,否则为0
@@ -13,6 +14,25 @@ def deal(n):
     else:
         return 0
 
+
+def transfer(feature, num):
+    """
+    迁移学习,特征转换,变取1,不变取0
+    :param feature: 某用户所有教学周的特征, 2D数组, week * feature
+    :return: 经过转换后的特征
+    """
+    num = int(num)
+    last_feature = [0 for x in range(num)]
+    transfer_feature = []
+    for cur_feature in feature:
+        dif_feature = [abs(x-y) for x, y in zip(cur_feature, last_feature)]
+        new_feature = [deal(one_feature) for one_feature in dif_feature]
+        print new_feature
+        transfer_feature.append(new_feature)
+        last_feature = cur_feature
+    return transfer_feature
+
+
 def readData(courseId, termId):
     """
     根据课程号与学期号，读取文件
@@ -22,12 +42,15 @@ def readData(courseId, termId):
     """
     dataFileName = "oldDataFiles/data_%s_%s" % (courseId, termId)
     labelFileName = "oldDataFiles/label_%s_%s" % (courseId, termId)
+    feature_num = 15
     data = []  # 数据
     label1, label2, label3, label4 = [], [], [], []  # 四个定义
+    last_feature = [0 for x in range(feature_num)]
     with open(dataFileName, 'r') as dataFile:
         for line in dataFile:
             lineArray = line.strip().split("\t")[1:]  # 每一项为一个周的数据
-            data.append([map(deal, week.split()) for week in lineArray])
+            feature = [map(deal, week.split()) for week in lineArray]
+            data.append(transfer(feature, 15))
     with open(labelFileName, 'r') as labelFile:
         for line in labelFile:
             lineArray = line.strip().split("\t")[1:]  # 每一项为一个周的四个定义
