@@ -18,7 +18,7 @@ def lazy_property(function):
 
 
 class BiRNN(object):
-    def __init__(self, data, target, dropout, session, num_hidden, num_layers):
+    def __init__(self, data, target, dropout, session, num_hidden=200, num_layers=1):
         self.data = data
         self.target = target
         self.dropout = dropout

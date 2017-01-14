@@ -27,7 +27,7 @@ def transfer(feature, num):
     for cur_feature in feature:
         dif_feature = [abs(x-y) for x, y in zip(cur_feature, last_feature)]
         new_feature = [deal(one_feature) for one_feature in dif_feature]
-        print new_feature
+        #print new_feature
         transfer_feature.append(new_feature)
         last_feature = cur_feature
     return transfer_feature
@@ -50,7 +50,8 @@ def readData(courseId, termId):
         for line in dataFile:
             lineArray = line.strip().split("\t")[1:]  # 每一项为一个周的数据
             feature = [map(deal, week.split()) for week in lineArray]
-            data.append(transfer(feature, 15))
+            #data.append(transfer(feature, 15))
+            data.append(feature)
     with open(labelFileName, 'r') as labelFile:
         for line in labelFile:
             lineArray = line.strip().split("\t")[1:]  # 每一项为一个周的四个定义
@@ -59,8 +60,17 @@ def readData(courseId, termId):
             label2.append([[week[1], 1 - week[1]] for week in weeks])
             label3.append([[week[2], 1 - week[2]] for week in weeks])
             label4.append([[week[3], 1 - week[3]] for week in weeks])
-    return data, label1, label2, label3, label4
+    return np.array(data), np.array(label1), np.array(label2),\
+           np.array(label3), np.array(label4)
 
+def arrayOr(arrayA, arrayB):
+    """
+    数组取或
+    :param arrayA:
+    :param arrayB:
+    :return:
+    """
+    return np.array([x | y for x, y in zip(map(int, arrayA), map(int, arrayB))])
 
 def dataConvert(modelNum, testData):
     """
@@ -78,7 +88,7 @@ def dataConvert(modelNum, testData):
         for week in xrange(testData.shape[1] - 1, -1, -1):
             newWeek = int(np.round((week + 1) * r)) - 1  # 化为以1开始，然后转换，四舍五入，再减1
             if newWeek >= 0:
-                result[user][newWeek] = testData[user][week]  # 映射
+                result[user][newWeek] = arrayOr(testData[user][week], result[user][newWeek])
     return result
 
 
