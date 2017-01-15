@@ -5,14 +5,17 @@ from BiRNNSeqLabel import *
 
 trainRadio = 0.8  # 取80%的数据训练
 batchSize = 100  # 每次读取的数据量
-epoch = 1  # 迭代次数
+epoch = 1500  # 迭代次数
 drop = 0.5
+num_hidden = 200
+num_layers = 6
 courseDict = {
-    85001: [253007, 357003, 485002, 1001584004],
-    20001: [407001, 1001620007],
-    21011: [440004],
-    43002: [231002, 457001],
-    45002: [255006, 419003, 1001596003]
+    #85001: [253007, 357003, 485002, 1001584004],
+    #20001: [407001, 1001620007],
+    #21011: [440004],
+    #43002: [231002, 457001],
+    #45002: [255006, 419003, 1001596003]
+    45002: [1001596003]
 }  # 课程号: [学期号]
 
 
@@ -29,37 +32,41 @@ def run(courseId, termId, expNum, model, trainData, testData,
     # 数据转换
 
     numSteps, size = trainData.shape[1], trainData.shape[2]
-    for i in xrange(1, 5):  # 四个定义四次训练
-        with tf.variable_scope("%s_%s_%s_%s" % (courseId, termId, expNum, i)):
-            print "  预测定义%s:" % i
-            # 定义tf变量
-            data = tf.placeholder(tf.float32, [None, numSteps, size])
-            target = tf.placeholder(tf.float32, [None, numSteps, trainLabel1.shape[2]])
-            dropout = tf.placeholder(tf.float32)
-            session = tf.Session()
-            targetLabel = session.run(tf.argmax(eval('testLabel' + str(i)), 2))  # 期望的结果
-            sl = model(data, target, dropout, session)
-            # session.run(tf.global_variables_initializer())
-            session.run(tf.initialize_all_variables())
-            for e in xrange(epoch):
-                # 迭代训练
-                for j in xrange(int(np.ceil(trainData.shape[0] / batchSize))):
-                    batchData = trainData[j * batchSize:(j + 1) * batchSize]
-                    batchTarget = eval('trainLabel' + str(i))[j * batchSize:(j + 1) * batchSize]
-                    session.run(sl.optimize, {data: batchData, target: batchTarget, dropout: drop})
-                predict = session.run(sl.prediction, {data: testData, target: eval('testLabel' + str(i)),
-                                                      dropout: drop})
-                # 预测的结果，shape = (用户数量，周数），值为0/1
-                predict = session.run(tf.argmax(predict, 2))
-                print "    Epoch:%d," % (e + 1),
-                for j in xrange(predict.shape[1]):  # 按周计算正确率
-                    correct = 0.0  # 预测正确的数量
-                    for k in xrange(predict.shape[0]):  # 计算每个用户
-                        if predict[k][j] == targetLabel[k][j]:
-                            correct += 1
-                    accuracy = correct / predict.shape[0]
-                    print "第%s周的准确率:%3.2f%%" % (j + 1, accuracy * 100),
-                print
+    with open("result1500.txt", 'w') as resFile:
+        for i in xrange(1, 5):  # 四个定义四次训练
+            with tf.variable_scope("%s_%s_%s_%s" % (courseId, termId, expNum, i)):
+                resFile.write("  预测定义%s:\n" % i)
+                print "  预测定义%s:" % i
+                # 定义tf变量
+                data = tf.placeholder(tf.float32, [None, numSteps, size])
+                target = tf.placeholder(tf.float32, [None, numSteps, trainLabel1.shape[2]])
+                dropout = tf.placeholder(tf.float32)
+                session = tf.Session()
+                targetLabel = session.run(tf.argmax(eval('testLabel' + str(i)), 2))  # 期望的结果
+                sl = model(data, target, dropout, session, num_hidden, num_layers)
+                # session.run(tf.global_variables_initializer())
+                session.run(tf.initialize_all_variables())
+                for e in xrange(epoch):
+                    # 迭代训练
+                    for j in xrange(int(np.ceil(trainData.shape[0] / batchSize))):
+                        batchData = trainData[j * batchSize:(j + 1) * batchSize]
+                        batchTarget = eval('trainLabel' + str(i))[j * batchSize:(j + 1) * batchSize]
+                        session.run(sl.optimize, {data: batchData, target: batchTarget, dropout: drop})
+                    if e % 10 == 0:
+                        predict = session.run(sl.prediction, {data: testData, target: eval('testLabel' + str(i)),
+                                                              dropout: drop})
+                        # 预测的结果，shape = (用户数量，周数），值为0/1
+                        predict = session.run(tf.argmax(predict, 2))
+                        resFile.write("    Epoch:%d, " % (e + 1))
+                        print "    Epoch:%d" % (e + 1)
+                        for j in xrange(predict.shape[1]):  # 按周计算正确率
+                            correct = 0.0  # 预测正确的数量
+                            for k in xrange(predict.shape[0]):  # 计算每个用户
+                                if predict[k][j] == targetLabel[k][j]:
+                                    correct += 1
+                            accuracy = correct / predict.shape[0]
+                            resFile.write("第%s周的准确率:%3.2f%% " % (j + 1, accuracy * 100))
+                        resFile.write("\n")
 
 
 def exp1():
