@@ -33,7 +33,7 @@ def transfer(feature, num):
     return transfer_feature
 
 
-def readData(courseId, termId):
+def readData(courseId, termId, useTransfer=False):
     """
     根据课程号与学期号，读取文件
     :param courseId: 课程号
@@ -50,8 +50,10 @@ def readData(courseId, termId):
         for line in dataFile:
             lineArray = line.strip().split("\t")[1:]  # 每一项为一个周的数据
             feature = [map(deal, week.split()) for week in lineArray]
-            #data.append(transfer(feature, 15))
-            data.append(feature)
+            if useTransfer:
+                data.append(transfer(feature, 15))
+            else:
+                data.append(feature)
     with open(labelFileName, 'r') as labelFile:
         for line in labelFile:
             lineArray = line.strip().split("\t")[1:]  # 每一项为一个周的四个定义
@@ -63,6 +65,7 @@ def readData(courseId, termId):
     return np.array(data), np.array(label1), np.array(label2),\
            np.array(label3), np.array(label4)
 
+
 def arrayOr(arrayA, arrayB):
     """
     数组取或
@@ -71,6 +74,7 @@ def arrayOr(arrayA, arrayB):
     :return:
     """
     return np.array([x | y for x, y in zip(map(int, arrayA), map(int, arrayB))])
+
 
 def dataConvert(modelNum, testData):
     """
@@ -92,6 +96,36 @@ def dataConvert(modelNum, testData):
     return result
 
 
+def data_transfer(modelNum, testData, isLable=False):
+    """
+    不同课程之间做迁移学习
+    :param num:
+    :param data:
+    :return:
+    """
+    r = modelNum * 1.0 / testData.shape[1]  # 转换的比例因子
+    users, features = testData.shape[0], testData.shape[2]
+    addweek_record = np.zeros(modelNum)
+    result = np.zeros((users, modelNum, features))
+    if isLable:
+        for user in xrange(users):
+            for week in xrange(modelNum):
+                result[user][week][1] = 1
+    for user in xrange(users):
+        # 此处倒序映射，如果是需要扩充，由于result默认全0,则未映射到的部分已经补0
+        # 如果是压缩，当有多个周映射到同一周时，倒序会自动取靠前的周的数据
+        for week in xrange(testData.shape[1] - 1, -1, -1):
+            newWeek = int(np.round((week + 1) * r)) - 1  # 化为以1开始，然后转换，四舍五入，再减1
+            if newWeek >= 0:
+                addweek_record[newWeek] = 1
+                if isLable:
+                    or_result = int(testData[user][week][0]) | int(result[user][newWeek][0])
+                    result[user][newWeek] = [or_result, 1 - or_result]
+                else:
+                    result[user][newWeek] = arrayOr(testData[user][week], result[user][newWeek])
+    return result, addweek_record
+
+
 def dataClean(trainData, *trainLabels):
     """
     对全0的训练数据进行清除
@@ -109,6 +143,7 @@ def dataClean(trainData, *trainLabels):
         trainData.pop(trainNum)
         for trainLabel in trainLabels:
             trainLabel.pop(trainNum)
+
 
 def getZeroMatrix(testData):
     """

@@ -2,21 +2,46 @@
 from DataHandler import *
 from SequenceLabeling import *
 from BiRNNSeqLabel import *
+import matplotlib.pyplot as plt
+
 
 trainRadio = 0.8  # 取80%的数据训练
 batchSize = 100  # 每次读取的数据量
-epoch = 1500  # 迭代次数
+epoch = 1  # 迭代次数
 drop = 0.5
 num_hidden = 200
-num_layers = 6
+num_layers = 2
 courseDict = {
-    #85001: [253007, 357003, 485002, 1001584004],
-    #20001: [407001, 1001620007],
-    #21011: [440004],
-    #43002: [231002, 457001],
-    #45002: [255006, 419003, 1001596003]
-    45002: [1001596003]
+    # 85001: [253007, 357003, 485002, 1001584004],  # 4
+    # 20001: [407001, 1001620007],  # 8
+    21011: [440004],  # 10
+    # 43002: [231002, 457001],  # 7
+    45002: [255006, 419003, 1001596003]  # 13
 }  # 课程号: [学期号]
+
+
+def draw_lines(y_values, weeks, file_name, figure_title, addweeks):
+    plt.clf()
+    x = np.arange(1, weeks+1, 1)
+    # y = y_values
+    y = []
+    for i in xrange(4):
+        a = y_values[i] * addweeks
+        y.append(filter(lambda k: k != 0, a))
+    #     print y
+    plt.plot(x, y[0], 'o-', label="$Def_1$", color="red")
+    plt.plot(x, y[1], 'o-', label="$Def_2$", color="blue")
+    plt.plot(x, y[2], 'o-', label="$Def_3$", color="green")
+    plt.plot(x, y[3], 'o-', label="$Def_4$", color="yellow")
+    plt.ylim(50, 110)
+    plt.legend(loc=4)
+    plt.title(figure_title)
+    plt.ylabel('Accuracy(%)')
+    plt.xlabel('Weeks')
+    for num in xrange(4):
+        for a, b in zip(x, y[num]):
+            plt.text(a, b+0.1, '%.0f' % b, ha='center', va='bottom', fontsize=7)
+    plt.savefig('./lab05_figs/'+file_name+'.png')
 
 
 def run(courseId, termId, expNum, model, trainData, testData,
@@ -32,7 +57,9 @@ def run(courseId, termId, expNum, model, trainData, testData,
     # 数据转换
 
     numSteps, size = trainData.shape[1], trainData.shape[2]
+    accuracy_all = []
     with open("result1500.txt", 'w') as resFile:
+        resFile.write("  课程编号%s:\n" % courseId)
         for i in xrange(1, 5):  # 四个定义四次训练
             with tf.variable_scope("%s_%s_%s_%s" % (courseId, termId, expNum, i)):
                 resFile.write("  预测定义%s:\n" % i)
@@ -46,8 +73,10 @@ def run(courseId, termId, expNum, model, trainData, testData,
                 sl = model(data, target, dropout, session, num_hidden, num_layers)
                 # session.run(tf.global_variables_initializer())
                 session.run(tf.initialize_all_variables())
+
                 for e in xrange(epoch):
                     # 迭代训练
+                    accuracy_one = []
                     for j in xrange(int(np.ceil(trainData.shape[0] / batchSize))):
                         batchData = trainData[j * batchSize:(j + 1) * batchSize]
                         batchTarget = eval('trainLabel' + str(i))[j * batchSize:(j + 1) * batchSize]
@@ -65,8 +94,11 @@ def run(courseId, termId, expNum, model, trainData, testData,
                                 if predict[k][j] == targetLabel[k][j]:
                                     correct += 1
                             accuracy = correct / predict.shape[0]
+                            accuracy_one.append(accuracy * 100)
                             resFile.write("第%s周的准确率:%3.2f%% " % (j + 1, accuracy * 100))
                         resFile.write("\n")
+            accuracy_all.append(accuracy_one)
+    return accuracy_all
 
 
 def exp1():
@@ -114,6 +146,7 @@ def exp2():
                 trainLabel1, testLabel1, trainLabel2, testLabel2,
                 trainLabel3, testLabel3, trainLabel4, testLabel4)
 
+
 def exp3():
     """
     使用BiRNN的实验1
@@ -151,6 +184,7 @@ def exp4():
                 trainLabel1, testLabel1, trainLabel2, testLabel2,
                 trainLabel3, testLabel3, trainLabel4, testLabel4)
 
+
 def exp5():
     """
     课程间的训练与测试，两两组合
@@ -162,17 +196,22 @@ def exp5():
             if i != j:
                 trainCourseId, testCourseId = courseList[i], courseList[j]
                 trainTermId, testTermId = courseDict[trainCourseId][0], courseDict[testCourseId][0]
-                trainData, trainLabel1, trainLabel2, trainLabel3, trainLabel4 = readData(trainCourseId, trainTermId)
-                testData, testLabel1, testLabel2, testLabel3, testLabel4 = readData(testCourseId, testTermId)
+                trainData, trainLabel1, trainLabel2, trainLabel3, trainLabel4 = readData(trainCourseId, trainTermId, True)
+                testData, testLabel1, testLabel2, testLabel3, testLabel4 = readData(testCourseId, testTermId, True)
                 print u"训练课程号:%s, 学期号:%s, 周数:%s; 测试课程号:%s, 学期号:%s, 周数:%s" \
                     % (trainCourseId, trainTermId, trainData.shape[1], testCourseId,
                        testTermId, testData.shape[1])
-                modelNum = trainData.shape[1]
-                testData = dataConvert(modelNum, testData)
-                testLabel1 = dataConvert(modelNum, testLabel1)
-                testLabel2 = dataConvert(modelNum, testLabel2)
-                testLabel3 = dataConvert(modelNum, testLabel3)
-                testLabel4 = dataConvert(modelNum, testLabel4)
-                run(str(trainCourseId)+str(testCourseId), trainTermId, 5, BiRNN, trainData, testData,
-                    trainLabel1, testLabel1, trainLabel2, testLabel2,
-                    trainLabel3, testLabel3, trainLabel4, testLabel4)
+                figure_name = 'figure_' + str(trainCourseId) + "_" + str(trainTermId) + "_" + str(
+                    trainData.shape[1]) + "_" + str(testCourseId) + "_" + str(testTermId) + "_" + str(testData.shape[1])
+                train_week_num = trainData.shape[1]
+                test_week_num = testData.shape[1]
+                testData, addweeks = data_transfer(train_week_num, testData)
+                testLabel1, addweeks = data_transfer(train_week_num, testLabel1, True)
+                testLabel2, addweeks = data_transfer(train_week_num, testLabel2, True)
+                testLabel3, addweeks = data_transfer(train_week_num, testLabel3, True)
+                testLabel4, addweeks = data_transfer(train_week_num, testLabel4, True)
+                results = run(str(trainCourseId)+str(testCourseId), trainTermId, 5, BiRNN, trainData, testData,
+                        trainLabel1, testLabel1, trainLabel2, testLabel2,
+                        trainLabel3, testLabel3, trainLabel4, testLabel4)
+                figure_title = figure_name
+                draw_lines(results, min(train_week_num, test_week_num), figure_name, figure_title, addweeks)
